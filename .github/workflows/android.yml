@@ -56,23 +56,28 @@ jobs:
           test -s "$APK"
           ls -lh "$APK"
 
-          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$APK" > /tmp/badging.txt
-          grep -F 'package: name=' /tmp/badging.txt
-          grep -F "package: name='com.aadityalabs.needle2'" /tmp/badging.txt
-          grep -F 'sdkVersion:' /tmp/badging.txt
-          grep -F 'targetSdkVersion:' /tmp/badging.txt
+          AAPT2="$ANDROID_HOME/build-tools/35.0.0/aapt2"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+
+          "$AAPT2" dump badging "$APK" > /tmp/badging.txt
+          cat /tmp/badging.txt
+          grep -Eq "^package: name=['\"]?com\.aadityalabs\.needle2['\"]?" /tmp/badging.txt
+          grep -Eq "^sdkVersion:['\"]?28['\"]?" /tmp/badging.txt
+          grep -Eq "^targetSdkVersion:['\"]?35['\"]?" /tmp/badging.txt
 
           command -v unzip >/dev/null
           unzip -t "$APK" >/dev/null
-          unzip -l "$APK" | grep -F 'lib/arm64-v8a/libneedle2_jni.so'
-          unzip -l "$APK" | grep -F 'assets/needle2.cact'
+          unzip -Z1 "$APK" | grep -Fx 'lib/arm64-v8a/libneedle2_jni.so'
+          unzip -Z1 "$APK" | grep -Fx 'assets/needle2.cact'
 
-          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump permissions "$APK" > /tmp/permissions.txt
+          "$AAPT2" dump permissions "$APK" > /tmp/permissions.txt
+          cat /tmp/permissions.txt
           if grep -q 'android.permission.INTERNET' /tmp/permissions.txt; then
             echo "ERROR: INTERNET permission must not be present"
             exit 1
           fi
 
+          "$APKSIGNER" verify --verbose "$APK"
           sha256sum "$APK"
 
       - name: Upload APK
