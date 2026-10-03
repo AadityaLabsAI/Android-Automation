@@ -68,7 +68,7 @@ public final class TaskStore {
                 } catch (RuntimeException ignored) {
                 }
             }
-        } catch (RuntimeException ignored) {
+        } catch (Exception ignored) {
         }
         return tasks;
     }
