@@ -1,19 +1,140 @@
 package com.aadityalabs.needle2;
-import android.content.*;
-import org.json.*;
-import java.util.*;
+
+import android.content.Context;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 public final class TaskStore {
-    public static final class Task{
-        public String id,title,command,repeat;public long triggerAt;public boolean enabled=true;
-        JSONObject json()throws Exception{return new JSONObject().put("id",id).put("title",title).put("command",command).put("repeat",repeat==null?"":repeat).put("triggerAt",triggerAt).put("enabled",enabled);}
-        static Task parse(JSONObject o){Task t=new Task();t.id=o.optString("id",UUID.randomUUID().toString().substring(0,8));t.title=o.optString("title","Scheduled task");t.command=o.optString("command","");t.repeat=o.optString("repeat","");t.triggerAt=o.optLong("triggerAt",0);t.enabled=o.optBoolean("enabled",true);return t;}
+    public static final class Task {
+        public String id;
+        public String title;
+        public String command;
+        public String repeat;
+        public long triggerAt;
+        public boolean enabled = true;
+
+        JSONObject json() throws Exception {
+            return new JSONObject()
+                    .put("id", id)
+                    .put("title", title)
+                    .put("command", command)
+                    .put("repeat", repeat == null ? "" : repeat)
+                    .put("triggerAt", triggerAt)
+                    .put("enabled", enabled);
+        }
+
+        static Task parse(JSONObject object) {
+            Task task = new Task();
+            task.id = nonEmpty(object.optString("id", ""), UUID.randomUUID().toString().substring(0, 8));
+            task.title = nonEmpty(object.optString("title", ""), "Scheduled task");
+            task.command = object.optString("command", "");
+            task.repeat = object.optString("repeat", "");
+            task.triggerAt = object.optLong("triggerAt", 0L);
+            task.enabled = object.optBoolean("enabled", true);
+            if (task.triggerAt < 0) task.triggerAt = 0;
+            return task;
+        }
+
+        private static String nonEmpty(String value, String fallback) {
+            return value == null || value.trim().isEmpty() ? fallback : value;
+        }
     }
-    private static final String PREFS="needle_tasks",KEY="tasks";
-    private TaskStore(){}
-    private static SharedPreferences prefs(Context c){return c.getSharedPreferences(PREFS,0);}
-    public static synchronized List<Task> all(Context c){ArrayList<Task> l=new ArrayList<>();try{JSONArray a=new JSONArray(prefs(c).getString(KEY,"[]"));for(int i=0;i<a.length();i++)l.add(Task.parse(a.getJSONObject(i)));}catch(Exception ignored){}return l;}
-    private static synchronized void save(Context c,List<Task> l){JSONArray a=new JSONArray();for(Task t:l)try{a.put(t.json());}catch(Exception ignored){}prefs(c).edit().putString(KEY,a.toString()).apply();}
-    public static synchronized Task add(Context c,String title,String command,long when,String repeat){Task t=new Task();t.id=UUID.randomUUID().toString().substring(0,8);t.title=title==null||title.isEmpty()?"Scheduled task":title;t.command=command;t.triggerAt=when;t.repeat=repeat==null?"":repeat;List<Task> l=all(c);l.add(t);save(c,l);return t;}
-    public static synchronized void update(Context c,Task u){List<Task> l=all(c);for(int i=0;i<l.size();i++)if(l.get(i).id.equals(u.id)){l.set(i,u);save(c,l);return;}}
-    public static synchronized boolean remove(Context c,String id,String title){List<Task> l=all(c);boolean ok=false;for(int i=l.size()-1;i>=0;i--){Task t=l.get(i);if((!id.isEmpty()&&t.id.equals(id))||(!title.isEmpty()&&t.title.equalsIgnoreCase(title))){l.remove(i);ok=true;}}save(c,l);return ok;}
+
+    private static final String PREFS = "needle_tasks";
+    private static final String KEY = "tasks";
+
+    private TaskStore() {
+    }
+
+    private static android.content.SharedPreferences prefs(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    public static synchronized List<Task> all(Context context) {
+        ArrayList<Task> tasks = new ArrayList<>();
+        try {
+            JSONArray array = new JSONArray(prefs(context).getString(KEY, "[]"));
+            for (int i = 0; i < array.length(); i++) {
+                try {
+                    JSONObject object = array.optJSONObject(i);
+                    if (object != null) {
+                        tasks.add(Task.parse(object));
+                    }
+                } catch (RuntimeException ignored) {
+                }
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return tasks;
+    }
+
+    private static synchronized void save(Context context, List<Task> tasks) {
+        JSONArray array = new JSONArray();
+        for (Task task : tasks) {
+            try {
+                array.put(task.json());
+            } catch (Exception ignored) {
+            }
+        }
+        prefs(context).edit().putString(KEY, array.toString()).apply();
+    }
+
+    public static synchronized Task add(
+            Context context, String title, String command, long when, String repeat) {
+        Task task = new Task();
+        task.id = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        task.title = title == null || title.trim().isEmpty() ? "Scheduled task" : title.trim();
+        task.command = command == null ? "" : command.trim();
+        task.triggerAt = when;
+        task.repeat = repeat == null ? "" : repeat.trim();
+
+        List<Task> tasks = all(context);
+        tasks.add(task);
+        save(context, tasks);
+        return task;
+    }
+
+    public static synchronized void update(Context context, Task updated) {
+        if (updated == null || updated.id == null || updated.id.isEmpty()) {
+            return;
+        }
+        List<Task> tasks = all(context);
+        for (int i = 0; i < tasks.size(); i++) {
+            if (updated.id.equals(tasks.get(i).id)) {
+                tasks.set(i, updated);
+                save(context, tasks);
+                return;
+            }
+        }
+    }
+
+    public static synchronized boolean remove(Context context, String id, String title) {
+        List<Task> tasks = all(context);
+        boolean removed = false;
+
+        for (int i = tasks.size() - 1; i >= 0; i--) {
+            Task task = tasks.get(i);
+            boolean match = (!isEmpty(id) && id.equals(task.id))
+                    || (!isEmpty(title) && title.equalsIgnoreCase(task.title));
+            if (match) {
+                TaskScheduler.cancel(context, task);
+                tasks.remove(i);
+                removed = true;
+            }
+        }
+
+        if (removed) {
+            save(context, tasks);
+        }
+        return removed;
+    }
+
+    private static boolean isEmpty(String value) {
+        return value == null || value.trim().isEmpty();
+    }
 }
