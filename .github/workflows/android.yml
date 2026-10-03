@@ -51,10 +51,29 @@ jobs:
         run: gradle :app:assembleRelease --no-daemon --stacktrace
       - name: Verify APK
         run: |
+          set -euo pipefail
           APK="app/build/outputs/apk/release/app-release.apk"
-          test -f "$APK"
+          test -s "$APK"
           ls -lh "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -20
+
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$APK" > /tmp/badging.txt
+          grep -F 'package: name=' /tmp/badging.txt
+          grep -F 'package: name=com.aadityalabs.needle2' /tmp/badging.txt
+          grep -F 'sdkVersion:' /tmp/badging.txt
+          grep -F 'targetSdkVersion:' /tmp/badging.txt
+
+          command -v unzip >/dev/null
+          unzip -t "$APK" >/dev/null
+          unzip -l "$APK" | grep -F 'lib/arm64-v8a/libneedle2_jni.so'
+          unzip -l "$APK" | grep -F 'assets/needle2.cact'
+
+          if "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump permissions "$APK" > /tmp/permissions.txt; then
+            if grep -q 'android.permission.INTERNET' /tmp/permissions.txt; then
+              echo "ERROR: INTERNET permission must not be present"
+              exit 1
+            fi
+          fi
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
