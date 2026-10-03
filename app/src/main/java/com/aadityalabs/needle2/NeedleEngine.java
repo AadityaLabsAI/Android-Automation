@@ -178,6 +178,7 @@ public final class NeedleEngine {
                     return new JSONObject().put("ok", true);
                 case "schedule_task": {
                     long when = TimeParser.parseWhen(args.optString("when"), System.currentTimeMillis());
+                    if (when <= System.currentTimeMillis()) return new JSONObject().put("ok", false).put("error", "invalid or past schedule time");
                     TaskStore.Task task = TaskStore.add(context, "Scheduled task",
                             args.optString("command"), when, args.optString("repeat", ""));
                     TaskScheduler.schedule(context, task);
