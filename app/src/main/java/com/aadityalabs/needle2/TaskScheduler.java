@@ -1,19 +1,87 @@
 package com.aadityalabs.needle2;
-import android.app.*;
-import android.content.*;
+
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
-public final class TaskScheduler{
-    private TaskScheduler(){}
-    private static PendingIntent pi(Context c,String id){Intent i=new Intent(c,TaskReceiver.class).setAction("com.aadityalabs.needle2.RUN").putExtra("task_id",id);int f=PendingIntent.FLAG_UPDATE_CURRENT;if(Build.VERSION.SDK_INT>=23)f|=PendingIntent.FLAG_IMMUTABLE;return PendingIntent.getBroadcast(c,id.hashCode(),i,f);}
-    public static void schedule(Context c,TaskStore.Task t){
-        AlarmManager a=(AlarmManager)c.getSystemService(Context.ALARM_SERVICE);if(a==null)return;
-        long when=Math.max(t.triggerAt,System.currentTimeMillis()+5000);PendingIntent p=pi(c,t.id);
-        try{
-            if(Build.VERSION.SDK_INT>=31 && !a.canScheduleExactAlarms()){a.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,when,p);}
-            else if(Build.VERSION.SDK_INT>=23)a.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,when,p);
-            else a.setExact(AlarmManager.RTC_WAKEUP,when,p);
-        }catch(SecurityException e){a.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,when,p);}
+
+public final class TaskScheduler {
+    private static final String ACTION_RUN = "com.aadityalabs.needle2.RUN";
+
+    private TaskScheduler() {
     }
-    public static void cancel(Context c,TaskStore.Task t){AlarmManager a=(AlarmManager)c.getSystemService(Context.ALARM_SERVICE);if(a!=null)a.cancel(pi(c,t.id));}
-    public static void rescheduleAll(Context c){for(TaskStore.Task t:TaskStore.all(c))if(t.enabled&&t.triggerAt>0)schedule(c,t);}
+
+    private static PendingIntent pi(Context context, String id) {
+        Intent intent = new Intent(context, TaskReceiver.class)
+                .setAction(ACTION_RUN)
+                .setData(Uri.parse("needle2://task/" + Uri.encode(id)))
+                .putExtra("task_id", id);
+
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= 23) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        return PendingIntent.getBroadcast(context, id.hashCode(), intent, flags);
+    }
+
+    public static boolean schedule(Context context, TaskStore.Task task) {
+        AlarmManager alarm = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarm == null || task == null || !task.enabled || task.triggerAt <= 0) {
+            return false;
+        }
+
+        long now = System.currentTimeMillis();
+        long when = Math.max(task.triggerAt, now + 5000L);
+        PendingIntent pendingIntent = pi(context, task.id);
+
+        try {
+            if (Build.VERSION.SDK_INT >= 31 && !alarm.canScheduleExactAlarms()) {
+                alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pendingIntent);
+            } else if (Build.VERSION.SDK_INT >= 23) {
+                alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pendingIntent);
+            } else {
+                alarm.setExact(AlarmManager.RTC_WAKEUP, when, pendingIntent);
+            }
+            return true;
+        } catch (SecurityException e) {
+            try {
+                alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pendingIntent);
+                return true;
+            } catch (RuntimeException ignored) {
+                return false;
+            }
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    public static void cancel(Context context, TaskStore.Task task) {
+        if (task == null) {
+            return;
+        }
+        AlarmManager alarm = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarm != null) {
+            alarm.cancel(pi(context, task.id));
+        }
+    }
+
+    public static void rescheduleAll(Context context) {
+        long now = System.currentTimeMillis();
+        for (TaskStore.Task task : TaskStore.all(context)) {
+            if (task.enabled && task.triggerAt > now) {
+                schedule(context, task);
+            } else if (task.enabled && task.repeat != null && !task.repeat.trim().isEmpty()) {
+                long next = task.repeat.startsWith("cron:")
+                        ? CronParser.next(task.repeat.substring(5), now)
+                        : TimeParser.nextRepeat(task.repeat, now);
+                if (next > now) {
+                    task.triggerAt = next;
+                    TaskStore.update(context, task);
+                    schedule(context, task);
+                }
+            }
+        }
+    }
 }
