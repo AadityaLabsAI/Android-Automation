@@ -11,6 +11,8 @@ android {
         versionCode 1
         versionName '1.0.0'
 
+        // Needle 2 runtime is shipped as an ARM64 static library.
+        // Keep the APK ARM64-only without combining ndk abiFilters and ABI splits.
         ndk { abiFilters 'arm64-v8a' }
 
         externalNativeBuild {
@@ -49,15 +51,6 @@ android {
         jniLibs { useLegacyPackaging false }
         resources {
             excludes += ['/META-INF/{AL2.0,LGPL2.1}', '/META-INF/DEPENDENCIES']
-        }
-    }
-
-    splits {
-        abi {
-            enable true
-            reset()
-            include 'arm64-v8a'
-            universalApk false
         }
     }
 
