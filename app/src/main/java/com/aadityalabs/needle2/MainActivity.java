@@ -12,7 +12,7 @@ import android.widget.*;
 import java.text.DateFormat;
 import java.util.*;
 
-public class MainActivity {
+public class MainActivity extends Activity {
     private static final int P = 16;
     private static final int NOTIFICATION_REQUEST = 2001;
     private LinearLayout root, content;
