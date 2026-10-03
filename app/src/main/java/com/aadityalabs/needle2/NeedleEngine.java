@@ -385,7 +385,7 @@ public final class NeedleEngine {
                         .put("ok", false)
                         .put("error", safe(t.getMessage()));
             } catch (Exception ignored) {
-                return new JSONObject().put("ok", false);
+                return new JSONObject();
             }
         }
     }
