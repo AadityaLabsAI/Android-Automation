@@ -1,0 +1,5 @@
+-keep class com.aadityalabs.needle2.NativeNeedle { *; }
+-keep class com.aadityalabs.needle2.NeedleEngine { *; }
+-keep class com.aadityalabs.needle2.AutomationService { *; }
+-keep class com.aadityalabs.needle2.TaskReceiver { *; }
+-keep class com.aadityalabs.needle2.TaskExecutionService { *; }

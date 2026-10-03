@@ -1,0 +1,7 @@
+Needle 2 is provided by Cactus Compute, Inc. under Apache License 2.0.
+
+Upstream:
+https://github.com/cactus-compute/needle
+https://huggingface.co/Cactus-Compute/needle2
+
+Large upstream binaries are fetched during builds rather than committed to Git.

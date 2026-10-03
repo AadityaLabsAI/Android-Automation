@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">needle2</string>
+    <string name="accessibility_description">Needle2 reads visible Android UI nodes and performs actions you request.</string>
+</resources>

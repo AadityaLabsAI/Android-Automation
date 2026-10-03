@@ -1,0 +1,19 @@
+[
+{"name":"read_screen","description":"Read the current visible Android accessibility UI. Use before interacting when screen state matters.","parameters":{"type":"object","properties":{},"required":[]}},
+{"name":"click_text","description":"Click a visible control by matching text or content description.","parameters":{"type":"object","properties":{"text":{"type":"string"}},"required":["text"]}},
+{"name":"click_xy","description":"Tap a known screen coordinate.","parameters":{"type":"object","properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}},
+{"name":"long_click","description":"Long press a visible UI control by text or content description.","parameters":{"type":"object","properties":{"text":{"type":"string"},"duration_ms":{"type":"integer","minimum":300,"maximum":3000}},"required":["text"]}},
+{"name":"type_text","description":"Type text into an editable field. Target is optional and identifies the field by visible text or content description.","parameters":{"type":"object","properties":{"text":{"type":"string"},"target":{"type":"string"}},"required":["text"]}},
+{"name":"scroll","description":"Scroll a visible scrollable container up or down.","parameters":{"type":"object","properties":{"direction":{"type":"string","enum":["up","down"]},"pages":{"type":"integer","minimum":1,"maximum":4}},"required":["direction"]}},
+{"name":"swipe","description":"Swipe between screen coordinates.","parameters":{"type":"object","properties":{"x1":{"type":"integer"},"y1":{"type":"integer"},"x2":{"type":"integer"},"y2":{"type":"integer"},"duration_ms":{"type":"integer","minimum":100,"maximum":2000}},"required":["x1","y1","x2","y2"]}},
+{"name":"press_back","description":"Press Android Back.","parameters":{"type":"object","properties":{},"required":[]}},
+{"name":"go_home","description":"Go to Android Home.","parameters":{"type":"object","properties":{},"required":[]}},
+{"name":"open_app","description":"Launch an installed Android app by package name.","parameters":{"type":"object","properties":{"package":{"type":"string"}},"required":["package"]}},
+{"name":"wait","description":"Wait before continuing a task.","parameters":{"type":"object","properties":{"milliseconds":{"type":"integer","minimum":100,"maximum":10000}},"required":["milliseconds"]}},
+{"name":"get_device_status","description":"Return device, battery, screen and automation status.","parameters":{"type":"object","properties":{},"required":[]}},
+{"name":"send_notification","description":"Send a local notification on this phone.","parameters":{"type":"object","properties":{"title":{"type":"string"},"body":{"type":"string"}},"required":["title","body"]}},
+{"name":"schedule_task","description":"Schedule a one-time or natural-language recurring local task. Examples: tomorrow at 08:00; in 30 minutes; every day at 09:00; every 30 minutes.","parameters":{"type":"object","properties":{"when":{"type":"string"},"command":{"type":"string"},"repeat":{"type":"string"}},"required":["when","command"]}},
+{"name":"schedule_cron","description":"Schedule a recurring local automation using standard five-field cron: minute hour day-of-month month day-of-week.","parameters":{"type":"object","properties":{"cron":{"type":"string"},"command":{"type":"string"},"title":{"type":"string"}},"required":["cron","command"]}},
+{"name":"list_tasks","description":"List local scheduled automation tasks.","parameters":{"type":"object","properties":{},"required":[]}},
+{"name":"cancel_task","description":"Cancel a local scheduled task by id or exact title.","parameters":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"}},"required":[]}}
+]
