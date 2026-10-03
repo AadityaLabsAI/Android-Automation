@@ -62,7 +62,7 @@ jobs:
           "$AAPT2" dump badging "$APK" > /tmp/badging.txt
           cat /tmp/badging.txt
           grep -Eq "^package: name=['\"]?com\.aadityalabs\.needle2['\"]?" /tmp/badging.txt
-          grep -Eq "^sdkVersion:['\"]?28['\"]?" /tmp/badging.txt
+          grep -Eq "^minSdkVersion:['\"]?28['\"]?" /tmp/badging.txt
           grep -Eq "^targetSdkVersion:['\"]?35['\"]?" /tmp/badging.txt
 
           command -v unzip >/dev/null
