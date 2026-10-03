@@ -56,7 +56,8 @@ public final class NeedleEngine {
                 + "; device: " + android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL
                 + "; assistant: needle2";
 
-        int init = NativeNeedle.nativeInit(facts, tools, 1);
+        File index = new File(context.getFilesDir(), "tools.idx");
+        int init = NativeNeedle.nativeInit(facts, tools, index.getAbsolutePath());
         if (init < 0) throw new IllegalStateException("Needle init failed: " + init);
         ready = true;
     }
