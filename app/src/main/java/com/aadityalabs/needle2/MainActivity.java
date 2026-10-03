@@ -1,7 +1,10 @@
 package com.aadityalabs.needle2;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.*;
@@ -11,6 +14,7 @@ import java.util.*;
 
 public class MainActivity {
     private static final int P = 16;
+    private static final int NOTIFICATION_REQUEST = 2001;
     private LinearLayout root, content;
     private ScrollView scroll;
     private EditText input;
@@ -24,8 +28,15 @@ public class MainActivity {
         Window w = getWindow();
         w.setStatusBarColor(Color.WHITE);
         w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-        engine = new NeedleEngine(this);
+
+        engine = NeedleEngine.get(this);
         NotificationHelper.ensureChannel(this);
+
+        if (Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_REQUEST);
+        }
+
         showChat();
     }
 
@@ -50,9 +61,9 @@ public class MainActivity {
         LinearLayout nav = new LinearLayout(this);
         nav.setBackgroundColor(Color.WHITE);
         nav.setPadding(P,4,P,4);
-        nav.addView(navItem("Chat",v -> showChat()));
-        nav.addView(navItem("Automations",v -> showAutomations()));
-        nav.addView(navItem("Device",v -> showDevice()));
+        nav.addView(navItem("Chat",v->showChat()));
+        nav.addView(navItem("Automations",v->showAutomations()));
+        nav.addView(navItem("Device",v->showDevice()));
         root.addView(nav);
 
         content = new LinearLayout(this);
@@ -225,10 +236,5 @@ public class MainActivity {
     @Override protected void onResume() {
         super.onResume();
         refreshStatus();
-    }
-
-    @Override protected void onDestroy() {
-        if (engine != null) engine.shutdown();
-        super.onDestroy();
     }
 }
