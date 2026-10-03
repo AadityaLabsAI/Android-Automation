@@ -70,9 +70,11 @@ public final class TaskScheduler {
     public static void rescheduleAll(Context context) {
         long now = System.currentTimeMillis();
         for (TaskStore.Task task : TaskStore.all(context)) {
-            if (task.enabled && task.triggerAt > now) {
+            if (!task.enabled) continue;
+
+            if (task.triggerAt > now) {
                 schedule(context, task);
-            } else if (task.enabled && task.repeat != null && !task.repeat.trim().isEmpty()) {
+            } else if (task.repeat != null && !task.repeat.trim().isEmpty()) {
                 long next = task.repeat.startsWith("cron:")
                         ? CronParser.next(task.repeat.substring(5), now)
                         : TimeParser.nextRepeat(task.repeat, now);
@@ -80,7 +82,13 @@ public final class TaskScheduler {
                     task.triggerAt = next;
                     TaskStore.update(context, task);
                     schedule(context, task);
+                } else {
+                    task.enabled = false;
+                    TaskStore.update(context, task);
                 }
+            } else {
+                task.enabled = false;
+                TaskStore.update(context, task);
             }
         }
     }
