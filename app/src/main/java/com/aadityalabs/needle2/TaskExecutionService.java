@@ -3,6 +3,7 @@ package com.aadityalabs.needle2;
 import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
 
@@ -23,7 +24,15 @@ public class TaskExecutionService extends Service {
                 .setContentText("Running scheduled automation")
                 .setOngoing(true);
 
-        startForeground(FOREGROUND_ID, builder.build());
+        Notification notification = builder.build();
+        if (Build.VERSION.SDK_INT >= 29) {
+            startForeground(
+                    FOREGROUND_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else {
+            startForeground(FOREGROUND_ID, notification);
+        }
     }
 
     @Override
