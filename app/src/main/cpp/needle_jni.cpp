@@ -1,59 +1,86 @@
 #include <jni.h>
 #include "needle.h"
 #include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <cerrno>
+#include <cstdint>
 #include <string>
 #include <vector>
 
 namespace {
-void* g_model=nullptr;
-std::string str(JNIEnv* e,jstring s){
-    if(!s)return{};
-    const char* p=e->GetStringUTFChars(s,nullptr);
-    std::string r=p?p:"";
-    if(p)e->ReleaseStringUTFChars(s,p);
-    return r;
-}
+void* g_map_base = nullptr;
+size_t g_map_length = 0;
+const unsigned char* g_model = nullptr;
+size_t g_model_length = 0;
+
+std::string toString(JNIEnv* env, jstring value) {
+    if (!value) return {};
+    const char* p = env->GetStringUTFChars(value, nullptr);
+    std::string out = p ? p : "";
+    if (p) env->ReleaseStringUTFChars(value, p);
+    return out;
 }
 
-extern "C" JNIEXPORT jint JNICALL
-Java_com_aadityalabs_needle2_NativeNeedle_nativeLoadModel(JNIEnv* e,jclass,jstring path){
-    if(g_model)return 0;
-    std::string p=str(e,path);
-    int fd=open(p.c_str(),O_RDONLY|O_CLOEXEC);
-    if(fd<0)return -errno;
-    struct stat st{};
-    if(fstat(fd,&st)!=0){int x=-errno;close(fd);return x;}
-    if(st.st_size<=0){close(fd);return -22;}
-    void* m=mmap(nullptr,(size_t)st.st_size,PROT_READ,MAP_PRIVATE,fd,0);
-    close(fd);
-    if(m==MAP_FAILED)return -errno;
-    int rc=needle_load((const unsigned char*)m,(unsigned long long)st.st_size);
-    if(rc<0){munmap(m,(size_t)st.st_size);return rc;}
-    g_model=m;
+int mapModel(int fd, long long offset, long long length) {
+    if (g_model) return 0;
+    if (fd < 0 || length <= 0 || offset < 0) return -22;
+
+    long page = sysconf(_SC_PAGESIZE);
+    if (page <= 0) page = 4096;
+
+    long long aligned = offset & ~((long long)page - 1);
+    size_t delta = static_cast<size_t>(offset - aligned);
+    size_t total = delta + static_cast<size_t>(length);
+
+    void* base = mmap(nullptr, total, PROT_READ, MAP_PRIVATE, fd, static_cast<off_t>(aligned));
+    if (base == MAP_FAILED) return -errno;
+
+    const unsigned char* model = static_cast<const unsigned char*>(base) + delta;
+    int rc = needle_load(model, static_cast<unsigned long long>(length));
+    if (rc < 0) {
+        munmap(base, total);
+        return rc;
+    }
+
+    g_map_base = base;
+    g_map_length = total;
+    g_model = model;
+    g_model_length = static_cast<size_t>(length);
     return rc;
 }
+}
 
 extern "C" JNIEXPORT jint JNICALL
-Java_com_aadityalabs_needle2_NativeNeedle_nativeInit(JNIEnv* e,jclass,jstring sys,jstring tools,jstring idx){
-    std::string s=str(e,sys),t=str(e,tools),i=str(e,idx);
-    return needle_init(s.c_str(),t.c_str(),i.empty()?nullptr:i.c_str());
+Java_com_aadityalabs_needle2_NativeNeedle_nativeLoadModelFd(
+        JNIEnv*, jclass, jint fd, jlong offset, jlong length) {
+    return mapModel(fd, static_cast<long long>(offset), static_cast<long long>(length));
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_aadityalabs_needle2_NativeNeedle_nativeInit(
+        JNIEnv* env, jclass, jstring systemPrompt, jstring toolsJson, jstring toolIndexPath) {
+    std::string system = toString(env, systemPrompt);
+    std::string tools = toString(env, toolsJson);
+    std::string index = toString(env, toolIndexPath);
+    return needle_init(system.c_str(), tools.c_str(), index.empty() ? nullptr : index.c_str());
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_aadityalabs_needle2_NativeNeedle_nativeComplete(JNIEnv* e,jclass,jstring input,jint maxTokens){
-    std::string q=str(e,input);
-    std::vector<char> out(65536,0);
-    int rc=needle_complete(q.c_str(),(int)maxTokens,out.data(),(int)out.size());
-    if(rc<0){
-        std::string err=std::string("{\\"type\\":\\"error\\",\\"code\\":")+std::to_string(rc)+"}";
-        return e->NewStringUTF(err.c_str());
+Java_com_aadityalabs_needle2_NativeNeedle_nativeComplete(
+        JNIEnv* env, jclass, jstring input, jint maxTokens) {
+    std::string query = toString(env, input);
+    std::vector<char> output(65536, 0);
+    int rc = needle_complete(query.c_str(), static_cast<int>(maxTokens),
+                             output.data(), static_cast<int>(output.size()));
+    if (rc < 0) {
+        std::string err = std::string("{\"type\":\"error\",\"code\":") +
+                std::to_string(rc) + "}";
+        return env->NewStringUTF(err.c_str());
     }
-    return e->NewStringUTF(out.data());
+    return env->NewStringUTF(output.data());
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_aadityalabs_needle2_NativeNeedle_nativeReset(JNIEnv*,jclass){needle_reset();}
+Java_com_aadityalabs_needle2_NativeNeedle_nativeReset(JNIEnv*, jclass) {
+    needle_reset();
+}
