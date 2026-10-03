@@ -46,7 +46,7 @@ public final class TimeParser {
             return t.atZone(z).toInstant().toEpochMilli();
         }
 
-        return now.plusMinutes(1).atZone(z).toInstant().toEpochMilli();
+        return 0;
     }
 
     public static long nextRepeat(String s, long after) {
