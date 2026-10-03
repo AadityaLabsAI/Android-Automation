@@ -65,7 +65,7 @@ gradle :app:assembleRelease --no-daemon
 Output:
 
 \`\`\`
-app/build/outputs/apk/release/app-arm64-v8a-release.apk
+app/build/outputs/apk/release/app-release.apk
 \`\`\`
 
 GitHub Actions builds the release APK on pushes to \`main\` and uploads it as \`needle2-android9-arm64\`.
