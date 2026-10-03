@@ -84,3 +84,8 @@ GitHub Actions builds the release APK on pushes to \`main\` and uploads it as \`
 No account, server, analytics SDK or network endpoint is included. Chat, task definitions and screen-derived data remain on the phone.
 
 Needle 2 provenance and licensing are documented in \`third_party/NEEDLE-LICENSE.txt\`.
+
+
+## CI verification
+
+This branch is used only to exercise the GitHub Actions build through a pull-request event.
