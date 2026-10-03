@@ -58,7 +58,7 @@ jobs:
 
           "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging "$APK" > /tmp/badging.txt
           grep -F 'package: name=' /tmp/badging.txt
-          grep -F 'package: name=com.aadityalabs.needle2' /tmp/badging.txt
+          grep -F "package: name='com.aadityalabs.needle2'" /tmp/badging.txt
           grep -F 'sdkVersion:' /tmp/badging.txt
           grep -F 'targetSdkVersion:' /tmp/badging.txt
 
