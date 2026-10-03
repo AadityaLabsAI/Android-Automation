@@ -222,6 +222,17 @@ public class MainActivity extends Activity {
         battery.setOnClickListener(v -> DeviceTools.openBattery(this));
         content.addView(battery);
 
+        if (Build.VERSION.SDK_INT >= 31) {
+            boolean exactAllowed = ((android.app.AlarmManager) getSystemService(ALARM_SERVICE))
+                    .canScheduleExactAlarms();
+            TextView exact = card("Precise schedules\n"
+                    + (exactAllowed
+                    ? "Exact alarm access is enabled."
+                    : "Exact alarm access is disabled; background schedules may use a less precise fallback."));
+            exact.setOnClickListener(v -> DeviceTools.openExactAlarm(this));
+            content.addView(exact);
+        }
+
         content.addView(card("Privacy\nNo INTERNET permission. Local model, tasks and chat state stay on the phone."));
         refreshStatus();
     }
