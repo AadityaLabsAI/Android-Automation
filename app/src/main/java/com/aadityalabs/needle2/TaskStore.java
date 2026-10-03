@@ -123,6 +123,7 @@ public final class TaskStore {
                     || (!isEmpty(title) && title.equalsIgnoreCase(task.title));
             if (match) {
                 TaskScheduler.cancel(context, task);
+                TaskJobService.cancel(context, task.id);
                 tasks.remove(i);
                 removed = true;
             }
